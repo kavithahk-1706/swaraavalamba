@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History | Swarāvalamba | स्वरावलम्ब</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .history-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    .history-head h1 { font-size: 1.8rem; }
+    .history-head p { color: var(--text-muted); font-size: 0.88rem; margin-top: 0.2rem; margin-bottom: 1.5rem; }
+    .history-list { display: flex; flex-direction: column; gap: 0.9rem; }
+    .history-item .history-top { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem 1rem; align-items: center; }
+    .history-item h3 { font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; }
+    .history-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .history-scores { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
+    .history-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; }
+    .history-detail { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); }
+    .history-detail .detail-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 1rem; }
+    .history-empty { text-align: center; color: var(--text-secondary); padding: 3rem 1rem; }
+    .history-more { align-self: center; }
+    .icon-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      padding: 0.45rem 0.7rem; cursor: pointer; color: var(--text-primary); display: inline-flex; align-items: center; gap: 0.35rem;
+      font-family: var(--font-sans); font-size: 0.8rem; }
+    .icon-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .icon-btn:disabled { opacity: 0.55; cursor: wait; }
+    .icon-btn.danger:hover { border-color: var(--error); color: var(--error); }
+    @media (max-width: 600px) { .history-item .history-top { grid-template-columns: 1fr; } .history-actions { justify-content: flex-start; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">
+        <span class="nav-brand-name">Swarāvalamba</span>
+        <span class="nav-brand-devanagari">स्वरावलम्ब</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="practice.html">Practice</a></li>
+        <li><a href="history.html" class="active">History</a></li>
+        <li id="authSlot" class="auth-slot"></li>
+        <li>
+          <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <span class="icon-sun"><i data-lucide="sun"></i> दिवा</span>
+            <span class="icon-moon"><i data-lucide="moon"></i> रात्रिः</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="history-wrap">
+    <div class="history-head">
+      <h1>Practice history</h1>
+      <p>Your saved sessions (newest 30). Open one to replay the video with the analysis in sync.</p>
+    </div>
+    <div id="historyList" class="history-list"></div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <span class="footer-brand">Swarāvalamba</span> · स्वरावलम्ब
+    </div>
+  </footer>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      try { localStorage.setItem('swaravalamba-theme', next); } catch (e) {}
+    }
+    (function () {
+      let saved = null;
+      try { saved = localStorage.getItem('swaravalamba-theme'); } catch (e) {}
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script>lucide.createIcons();</script>
+  <script type="module">
+    import { onAuthChange, isConfigured } from './js/auth.js';
+    import { cachedList, listSessions, getSessionData, getVideoUrl, deleteSession } from './js/history.js';
+    import { Replay } from './js/replay.js';
+    import { exportJSON, exportCSV, exportPDF, downloadBlob, baseName } from './js/export.js';
+    import { RAGAS } from './js/swara-detect.js';
+
+    const PAGE = 20;
+    const SPEED = { 1: '1st speed', 2: '2nd speed', 4: '3rd speed' };
+    const list = document.getElementById('historyList');
+    let user = null;
+    let rows = [];            // loaded session rows (newest first)
+    let hasMore = false;
+    let open = null;          // { id, replay }
+
+    const icon = name => `<i data-lucide="${name}"></i>`;
+    const refreshIcons = () => window.lucide && window.lucide.createIcons();
+
+    function button(iconName, label, onClick, cls = '') {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `icon-btn ${cls}`.trim();
+      b.innerHTML = `${icon(iconName)} ${label}`;
+      b.addEventListener('click', onClick);
+      return b;
+    }
+
+    function badge(label, pct) {
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.textContent = `${label} ${pct}%`;
+      return b;
+    }
+
+    function message(text) {
+      const d = document.createElement('div');
+      d.className = 'card history-empty';
+      d.textContent = text;
+      list.replaceChildren(d);
+    }
+
+    function closeOpen() {
+      if (open) { open.replay.destroy(); open.detail.remove(); open = null; }
+    }
+
+    async function toggleRow(row, card, openBtn) {
+      if (open && open.id === row.id) { closeOpen(); openBtn.innerHTML = `${icon('play')} Open`; refreshIcons(); return; }
+      closeOpen();
+      list.querySelectorAll('.open-btn').forEach(b => { b.innerHTML = `${icon('play')} Open`; });
+      openBtn.disabled = true;
+      openBtn.textContent = 'Loading…';
+      try {
+        // fetched on demand: the heavy JSON + a short-lived video link
+        const [data, videoUrl] = await Promise.all([
+          getSessionData(row.id),
+          row.video_path ? getVideoUrl(row.video_path) : Promise.resolve(null),
+        ]);
+        const session = data.timeline;
+        const detail = document.createElement('div');
+        detail.className = 'history-detail';
+        const holder = document.createElement('div');
+        detail.appendChild(holder);
+        const actions = document.createElement('div');
+        actions.className = 'detail-actions';
+        actions.append(
+          button('download', 'JSON', () => exportJSON(session, data.hands)),
+          button('file-spreadsheet', 'CSV', () => exportCSV(session)),
+          button('file-text', 'PDF', () => exportPDF(session).catch(e => alert(`Could not create the PDF: ${e.message}`))),
+        );
+        if (row.video_path) {
+          actions.appendChild(button('video', 'Download video', async ev => {
+            const btn = ev.currentTarget;
+            btn.disabled = true;
+            try {
+              const ext = (row.video_mime || '').includes('mp4') ? 'mp4' : 'webm';
+              window.location.assign(await getVideoUrl(row.video_path, { download: `${baseName(session)}.${ext}` }));
+            } catch (e) { alert(`Could not download the video: ${e.message}`); }
+            btn.disabled = false;
+          }));
+        }
+        card.appendChild(detail);
+        const replay = new Replay(holder, { session, hands: data.hands, videoUrl });
+        detail.appendChild(actions);
+        open = { id: row.id, replay, detail };
+        openBtn.innerHTML = `${icon('chevron-up')} Close`;
+      } catch (e) {
+        console.error(e);
+        alert(`Could not open this session: ${e.message || e}`);
+        openBtn.innerHTML = `${icon('play')} Open`;
+      }
+      openBtn.disabled = false;
+      refreshIcons();
+    }
+
+    function renderRow(row) {
+      const card = document.createElement('div');
+      card.className = 'card history-item';
+      const top = document.createElement('div');
+      top.className = 'history-top';
+
+      const info = document.createElement('div');
+      const h = document.createElement('h3');
+      h.textContent = row.exercise;
+      if (row.video_path) h.insertAdjacentHTML('beforeend', icon('video'));
+      const meta = document.createElement('div');
+      meta.className = 'history-meta';
+      const raga = (RAGAS[row.raga] && RAGAS[row.raga].name) || row.raga;
+      meta.textContent = `${new Date(row.started_at).toLocaleString()} · ${raga} · ${SPEED[row.speed] || row.speed} · ${row.mode} · Sa ${row.shruti} · ${row.bpm} BPM`;
+      const scores = document.createElement('div');
+      scores.className = 'history-scores';
+      const s = row.summary;
+      if (s) scores.append(badge('Swara', s.swaraPct), badge('Tala', s.talaPct), badge('Overall', s.overall));
+      info.append(h, meta, scores);
+
+      const actions = document.createElement('div');
+      actions.className = 'history-actions';
+      const openBtn = button('play', 'Open', () => toggleRow(row, card, openBtn), 'open-btn');
+      const del = button('trash-2', 'Delete', async () => {
+        if (!confirm('Delete this session' + (row.video_path ? ' and its video' : '') + '? This cannot be undone.')) return;
+        try {
+          if (open && open.id === row.id) closeOpen();
+          await deleteSession(row);
+          rows = rows.filter(r => r.id !== row.id);
+          render();
+        } catch (e) { alert(`Could not delete: ${e.message || e}`); }
+      }, 'danger');
+      actions.append(openBtn, del);
+
+      top.append(info, actions);
+      card.appendChild(top);
+      return card;
+    }
+
+    function render() {
+      if (!isConfigured) { message('Cloud history is not set up yet. Add your Supabase details to js/config.js (see SETUP.md).'); return; }
+      if (!user) { message('Sign in with Google to see your saved practice sessions.'); return; }
+      if (!rows.length) {
+        message('No saved sessions yet. Tick "Record session" on the practice page, finish a run, then press "Save to history".');
+        return;
+      }
+      const els = rows.map(renderRow);
+      if (hasMore) {
+        const more = button('chevron-down', 'Load more', async ev => {
+          ev.currentTarget.disabled = true;
+          try {
+            const next = await listSessions({ limit: PAGE, before: rows[rows.length - 1].started_at });
+            rows = rows.concat(next);
+            hasMore = next.length === PAGE;
+          } catch (e) { alert(`Could not load more: ${e.message || e}`); }
+          closeOpen();
+          render();
+        }, 'history-more');
+        els.push(more);
+      }
+      list.replaceChildren(...els);
+      refreshIcons();
+    }
+
+    async function load() {
+      closeOpen();
+      rows = [];
+      if (!isConfigured || !user) { render(); return; }
+      const cached = cachedList(user);          // instant paint, then refresh
+      if (cached && cached.length) { rows = cached; hasMore = cached.length === PAGE; render(); }
+      else message('Loading…');
+      try {
+        rows = await listSessions({ limit: PAGE });
+        hasMore = rows.length === PAGE;
+      } catch (e) {
+        console.error(e);
+        if (!rows.length) { message(`Could not load your history: ${e.message || e}`); return; }
+      }
+      render();
+    }
+
+    let lastUserId;
+    onAuthChange(u => {
+      user = u;
+      if ((u && u.id) !== lastUserId) { lastUserId = u && u.id; load(); }
+    });
+  </script>
+</body>
+</html>

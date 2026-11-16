@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Practice | Swarāvalamba | स्वरावलम्ब</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Practice-page specifics (everything else comes from style.css) */
+    .practice-wrap { max-width: 1400px; margin: 0 auto; padding: 0 1.25rem; }
+
+    /* ── One-screen layout: tāḷa + swara | camera | settings, all inside the viewport ── */
+    :root { --nav-h: 64px; --chrome: 250px; }   /* --chrome = nav + progress + accuracy ribbon + paddings */
+    .practice-wrap { max-width: 1680px; }
+    .practice-layout {
+      grid-template-columns: 268px minmax(0, 1fr) 296px;
+      gap: 1rem;
+      height: calc(100vh - var(--nav-h));
+      height: calc(100dvh - var(--nav-h));
+      min-height: 0;
+      padding: 0.75rem 0;
+      align-items: stretch;
+    }
+    .left-col, .settings-col { display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .settings-col { display: block; }
+    .main-col { display: flex; flex-direction: column; justify-content: flex-start; gap: 0.6rem; min-width: 0; min-height: 0; }
+
+    /* camera: as large as fits both the column width and the height left after the ribbons */
+    .main-col .camera-section {
+      aspect-ratio: var(--cam-ar, 1.7778);
+      width: min(100%, calc((100vh - var(--chrome)) * var(--cam-ar, 1.7778)));
+      width: min(100%, calc((100dvh - var(--chrome)) * var(--cam-ar, 1.7778)));
+      align-self: center;
+    }
+    .main-col .progress-bar { margin: 0 auto; width: 100%; max-width: 100%; }
+
+    /* swara notation: a ribbon above the video, centred, same width as the video */
+    .main-col .notation-bar {
+      margin: 0; align-self: center;
+      width: min(100%, calc((100vh - var(--chrome)) * var(--cam-ar, 1.7778)));
+      width: min(100%, calc((100dvh - var(--chrome)) * var(--cam-ar, 1.7778)));
+      text-align: center;
+      scrollbar-width: none;
+    }
+    .main-col .notation-bar::-webkit-scrollbar { display: none; }
+
+    /* accuracy as a horizontal ribbon under the video */
+    .accuracy-ribbon {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md); padding: 0.55rem 1rem;
+      width: min(100%, calc((100vh - var(--chrome)) * var(--cam-ar, 1.7778)));
+      width: min(100%, calc((100dvh - var(--chrome)) * var(--cam-ar, 1.7778)));
+      align-self: center;
+    }
+    .accuracy-ribbon .meter-row + .meter-row { margin-top: 0; }
+
+    /* compact panels for the narrow left column */
+    .left-col .meter-panel { padding: 0.75rem 0.85rem; }
+    .left-col .tala-boxes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .left-col .swara-display { padding: 0.25rem 0; }
+
+    @media (max-width: 1100px) {
+      .practice-layout { grid-template-columns: 240px minmax(0, 1fr) 260px; }
+    }
+    @media (max-width: 900px) {      /* phones / small tablets: stack and let the page scroll */
+      .practice-layout { display: flex; flex-direction: column; height: auto; }
+      .left-col, .settings-col { overflow: visible; }
+      .left-col { order: 2; } .main-col { order: 1; } .settings-col { order: 3; }
+      .main-col .camera-section, .accuracy-ribbon { width: 100%; }
+    }
+
+    .camera-msg {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 1rem; color: #e8dcc8; font-size: 0.95rem; pointer-events: none;
+    }
+    .camera-msg.hidden { display: none; }
+    .camera-overlay .tala-instr { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 700; color: var(--accent-glow); }
+    .camera-overlay .hand-warning { font-size: 0.8rem; color: #f0a860; }
+    .camera-overlay .beat-counter { font-size: 0.85rem; opacity: 0.9; }
+
+    .setting-row select, .setting-row input[type="number"] {
+      font-family: var(--font-sans); font-size: 0.88rem; font-weight: 600;
+      color: var(--text-primary); background: var(--bg-secondary);
+      border: 1px solid var(--border-color); border-radius: 4px;
+      padding: 0.3rem 0.5rem; min-width: 9.5rem;
+    }
+    .setting-row input[type="number"] { min-width: 0; width: 5.5rem; text-align: right; }
+    .setting-row select:disabled, .setting-row input:disabled { opacity: 0.55; cursor: not-allowed; }
+    .setting-row input[type="checkbox"] { width: 1.1rem; height: 1.1rem; accent-color: var(--accent-primary); }
+    .setting-hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.5rem; }
+    .start-btn { width: 100%; justify-content: center; margin-top: 0.9rem; font-size: 1rem; }
+    .start-btn.running { background: var(--error); }
+    .start-btn:disabled { opacity: 0.6; cursor: wait; }
+
+    .countdown-label { margin-top: 1rem; color: #e8dcc8; font-family: var(--font-serif); font-size: 1.1rem; }
+    .countdown-sub { margin-top: 0.3rem; color: #bfb09a; font-size: 0.85rem; }
+
+    .results-inner { max-width: 900px; margin: 0 auto; }
+    .results-section-title { font-size: 1rem; margin: 1.75rem 0 0.25rem; color: var(--accent-primary); }
+    .legend { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-muted); }
+    .legend span::before { content: ''; display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; margin-right: 0.3rem; vertical-align: -1px; background: var(--c, var(--text-muted)); }
+    .tala-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 0.5rem; align-items: center; margin-top: 4px; }
+    .tala-row .cyc { font-size: 0.7rem; color: var(--text-muted); }
+    .swara-detail-box small { font-size: 0.5rem; font-weight: 500; opacity: 0.85; }
+    .results-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem; }
+
+    @media (max-width: 900px) {
+      .practice-layout { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">
+        <span class="nav-brand-name">Swarāvalamba</span>
+        <span class="nav-brand-devanagari">स्वरावलम्ब</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="practice.html" class="active">Practice</a></li>
+        <li><a href="history.html">History</a></li>
+        <li id="authSlot" class="auth-slot"></li>
+        <li>
+          <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <span class="icon-sun"><i data-lucide="sun"></i> दिवा</span>
+            <span class="icon-moon"><i data-lucide="moon"></i> रात्रिः</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="practice-wrap">
+    <div class="practice-layout">
+
+      <!-- ═════════ LEFT: tāḷa + swara ═════════ -->
+      <aside class="left-col">
+        <div class="meter-panel">
+          <h3>Tāḷa cycle</h3>
+          <div id="talaBoxes" class="tala-boxes">
+            <div class="tala-box" data-i="0">1<span class="tala-label">Beat</span></div>
+            <div class="tala-box" data-i="1">2<span class="tala-label">Pinky</span></div>
+            <div class="tala-box" data-i="2">3<span class="tala-label">Ring</span></div>
+            <div class="tala-box" data-i="3">4<span class="tala-label">Middle</span></div>
+            <div class="tala-box" data-i="4">5<span class="tala-label">Beat</span></div>
+            <div class="tala-box" data-i="5">6<span class="tala-label">Wave</span></div>
+            <div class="tala-box" data-i="6">7<span class="tala-label">Beat</span></div>
+            <div class="tala-box" data-i="7">8<span class="tala-label">Wave</span></div>
+          </div>
+          <div class="tala-meta"><span id="talaMode">Mode: air</span><span id="talaCycle">Cycle –</span></div>
+        </div>
+
+        <div class="meter-panel">
+          <h3>Swara</h3>
+          <div class="swara-display">
+            <div class="swara-pair">
+              <div>
+                <div class="swara-label">Expected</div>
+                <div id="expectedSwara" class="detected-swara expected-swara">–</div>
+              </div>
+              <div>
+                <div class="swara-label">You sing</div>
+                <div id="detectedSwara" class="detected-swara">---</div>
+              </div>
+            </div>
+            <div id="centsDisplay" class="cents-display">&nbsp;</div>
+            <div class="strength" title="How clear the pitch signal is (voicing strength x stability of recent readings). A heuristic, not a probability.">
+              <span class="strength-label">Signal</span>
+              <div class="strength-track"><div id="strengthFill" class="strength-fill"></div></div>
+              <span id="strengthVal" class="strength-val">–</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ═════════ CENTRE: camera + progress + accuracy ═════════ -->
+      <div class="main-col">
+        <div id="notationBar" class="notation-bar" aria-label="Exercise notation">
+          <!-- .swara spans are generated by practice.js -->
+        </div>
+
+        <section class="camera-section" aria-label="Camera feed">
+          <video id="video" autoplay muted playsinline></video>
+          <canvas id="overlay"></canvas>
+          <div id="cameraMsg" class="camera-msg">Press <strong>&nbsp;Start&nbsp;</strong> to enable your camera and microphone.</div>
+          <div class="camera-overlay">
+            <div>
+              <div id="talaInstr" class="tala-instr">&nbsp;</div>
+              <div id="handWarning" class="hand-warning"></div>
+            </div>
+            <div id="beatCounter" class="beat-counter"></div>
+          </div>
+        </section>
+
+        <div class="progress-bar" aria-label="Exercise progress">
+          <div id="progressFill" class="progress-bar-fill" style="width: 0%"></div>
+        </div>
+
+        <div class="accuracy-ribbon" aria-label="Accuracy so far">
+          <div class="meter-row">
+            <div class="meter-row-head"><span title="Share of tala beats performed correctly so far in this run">Tala accuracy so far</span><span id="talaMeterVal" class="meter-val">–</span></div>
+            <div class="progress-bar"><div id="talaMeterFill" class="progress-bar-fill" style="width: 0%"></div></div>
+          </div>
+          <div class="meter-row">
+            <div class="meter-row-head"><span title="Weighted share of swaras sung correctly so far in this run">Swara accuracy so far</span><span id="swaraMeterVal" class="meter-val">–</span></div>
+            <div class="progress-bar"><div id="swaraMeterFill" class="progress-bar-fill" style="width: 0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═════════ RIGHT: settings ═════════ -->
+      <aside class="side-panel settings-col">
+
+        <div class="settings-panel">
+          <div class="setting-row">
+            <label class="setting-label" for="exerciseSelect">Exercise</label>
+            <select id="exerciseSelect">
+              <option value="Sarali 1" selected>Sarali 1</option>
+              <option value="Sarali 2">Sarali 2</option>
+              <option value="Sarali 3">Sarali 3</option>
+              <option value="Datu Swara">Datu Swara</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="ragaSelect">Raga</label>
+            <select id="ragaSelect">
+              <option value="mayamalavagowla" selected>Māyāmāḷavagowḷa</option>
+              <option value="shankarabharanam">Shankarābharaṇam</option>
+              <option value="kalyani">Kalyāṇi</option>
+              <option value="harikambhoji">Harikāmbhōji</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="speedSelect">Speed</label>
+            <select id="speedSelect">
+              <option value="1" selected>1st speed (1/beat)</option>
+              <option value="2">2nd speed (2/beat)</option>
+              <option value="4">3rd speed (4/beat)</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="modeSelect">Tala mode</label>
+            <select id="modeSelect">
+              <option value="air" selected>Air</option>
+              <option value="palm">Palm</option>
+              <option value="lap">Lap</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="shrutiSelect">Shruti (Sa)</label>
+            <select id="shrutiSelect">
+              <option value="C" selected>C</option>
+              <option value="C#">C♯</option>
+              <option value="D">D</option>
+              <option value="D#">D♯</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="F#">F♯</option>
+              <option value="G">G</option>
+              <option value="G#">G♯</option>
+              <option value="A">A</option>
+              <option value="A#">A♯</option>
+              <option value="B">B</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="bpmInput">BPM</label>
+            <input id="bpmInput" type="number" min="30" max="120" step="5" value="60">
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="droneToggle">Tanpura drone</label>
+            <input id="droneToggle" type="checkbox">
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="headphonesToggle">I'm wearing headphones</label>
+            <input id="headphonesToggle" type="checkbox">
+          </div>
+          <p id="headphonesHint" class="setting-hint">With headphones, the click and tanpura are mixed into the recording. Without, the mic picks them up from your speakers.</p>
+          <div class="setting-row">
+            <label class="setting-label" for="recordToggle">Record session (video)</label>
+            <input id="recordToggle" type="checkbox">
+          </div>
+          <p id="recordHint" class="setting-hint">Sign in to record sessions to your history.</p>
+          <button id="startBtn" class="btn btn-primary start-btn" type="button">
+            <span class="when-idle"><i data-lucide="play"></i> Start</span>
+            <span class="when-running hidden"><i data-lucide="square"></i> Stop</span>
+          </button>
+          <p class="setting-hint">Use your right hand. Earphones are recommended so the mic doesn't pick up the click and drone.</p>
+        </div>
+
+
+
+
+      </aside>
+    </div>
+  </main>
+
+  <!-- ═════════ Countdown overlay ═════════ -->
+  <div id="countdownOverlay" class="countdown-overlay hidden" role="status" aria-live="polite">
+    <div id="countdownNumber" class="countdown-number">4</div>
+    <div id="countdownLabel" class="countdown-label"></div>
+    <div id="countdownSub" class="countdown-sub"></div>
+  </div>
+
+  <!-- ═════════ Results overlay ═════════ -->
+  <div id="resultsOverlay" class="results-overlay hidden">
+    <div class="results-inner">
+      <div class="results-header">
+        <h2 id="resultsTitle">Results</h2>
+        <div id="resultsGrade" class="results-grade"></div>
+      </div>
+
+      <div class="results-scores">
+        <div class="card score-card">
+          <div class="score-label">Swara</div>
+          <div id="swaraScoreValue" class="score-value">0%</div>
+          <div class="score-bar"><div id="swaraScoreBar" class="score-bar-fill" style="width: 0%"></div></div>
+        </div>
+        <div class="card score-card">
+          <div class="score-label">Tala</div>
+          <div id="talaScoreValue" class="score-value">0%</div>
+          <div class="score-bar"><div id="talaScoreBar" class="score-bar-fill" style="width: 0%"></div></div>
+        </div>
+      </div>
+
+      <h3 class="results-section-title">Swara detail</h3>
+      <div id="swaraDetailGrid" class="swara-detail-grid"></div>
+      <div class="legend">
+        <span style="--c: var(--success)">in tune</span>
+        <span style="--c: #4aa890">slightly off</span>
+        <span style="--c: var(--warning)">1 semitone</span>
+        <span style="--c: #d07020">2 semitones</span>
+        <span style="--c: var(--error)">wrong</span>
+        <span style="--c: var(--text-muted)">not detected</span>
+        <span style="--c: var(--text-muted); opacity: .5">faded = low signal strength</span>
+      </div>
+
+      <h3 class="results-section-title">Tala detail</h3>
+      <div id="talaDetail" class="tala-detail">
+        <div id="talaDetailRows"></div>
+      </div>
+      <div class="legend">
+        <span style="--c: var(--success)">correct</span>
+        <span style="--c: var(--error)">missed</span>
+      </div>
+
+      <div class="results-actions">
+        <button id="retryBtn" class="btn btn-outline" type="button"><i data-lucide="rotate-ccw"></i> Retry</button>
+        <button id="menuBtn" class="btn btn-outline" type="button">Back to menu</button>
+        <button id="saveBtn" class="btn btn-primary" type="button"><i data-lucide="save"></i> <span id="saveLabel">Save to history</span></button>
+        <button id="discardBtn" class="btn btn-outline hidden" type="button"><i data-lucide="trash-2"></i> Discard recording</button>
+        <button id="downloadBtn" class="btn btn-outline" type="button"><i data-lucide="download"></i> JSON</button>
+        <button id="csvBtn" class="btn btn-outline" type="button"><i data-lucide="file-spreadsheet"></i> CSV</button>
+        <button id="pdfBtn" class="btn btn-outline" type="button"><i data-lucide="file-text"></i> PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <span class="footer-brand">Swarāvalamba</span> · स्वरावलम्ब
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle (same behaviour as the other pages)
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      try { localStorage.setItem('swaravalamba-theme', next); } catch (e) {}
+    }
+    (function () {
+      let saved = null;
+      try { saved = localStorage.getItem('swaravalamba-theme'); } catch (e) {}
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script>lucide.createIcons();</script>
+  <script>
+    // Browsers block ES modules (and the camera/model loading) on file:// pages.
+    if (location.protocol === 'file:') {
+      document.getElementById('cameraMsg').innerHTML =
+        'This page needs to be served over http. In the project folder run ' +
+        '<code>python -m http.server 8000</code> and open ' +
+        '<code>http://localhost:8000/practice.html</code>.';
+    }
+  </script>
+  <!-- ES modules: must be served over http(s) / localhost (camera + mic need a secure context) -->
+  <script type="module" src="js/practice.js"></script>
+</body>
+</html>

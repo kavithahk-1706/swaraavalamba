@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About | Swarāvalamba</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">
+        <span class="nav-brand-name">Swarāvalamba</span>
+        <span class="nav-brand-devanagari">स्वरावलम्ब</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html" class="active">About</a></li>
+        <li><a href="practice.html">Practice</a></li>
+        <li><a href="history.html">History</a></li>
+        <li id="authSlot" class="auth-slot"></li>
+        <li>
+          <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <span class="icon-sun"><i data-lucide="sun"></i> दिवा</span>
+            <span class="icon-moon"><i data-lucide="moon"></i> रात्रिः</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="about-hero container">
+      <span class="badge">About</span>
+      <h1 style="margin-top: 0.5rem;">What is Swarāvalamba?</h1>
+      <p style="color: var(--text-secondary); max-width: 600px; margin: 0.5rem auto 0;">
+        A real-time Carnatic music practice companion that tracks your hand gestures and voice simultaneously.
+      </p>
+    </section>
+
+    <section class="section container">
+      <div class="about-content">
+        <h2>The Problem</h2>
+        <p>
+          Every Carnatic music student faces the same challenge: learning to maintain
+          tālam (rhythmic hand gestures) while singing swaras accurately in shruti.
+          These are two independent cognitive tasks that must become second nature — and
+          traditional practice relies entirely on a teacher's real-time correction, which
+          isn't available during solo practice at home.
+        </p>
+        <p>
+          Students often develop one skill at the expense of the other — their tālam
+          drifts when they focus on pitch, or their swaras waver when they concentrate
+          on hand movements. Without immediate feedback, bad habits go unnoticed and
+          become harder to fix.
+        </p>
+
+        <div class="divider">
+          <span class="divider-symbol"><i data-lucide="diamond"></i></span>
+        </div>
+
+        <h2>The Approach</h2>
+        <p>
+          Swarāvalamba uses your webcam to track hand landmarks via
+          <strong>MediaPipe Hand Landmarker</strong> and your microphone to detect pitch
+          via the <strong>Web Audio API</strong> with autocorrelation-based pitch detection.
+        </p>
+        <p>
+          For tālam, the system extracts a few key signals from your hand: finger-to-thumb
+          distances (for counting), tip-drop values (for palm/lap mode), wrist height
+          (for beat detection), and palm orientation (for wave/flip detection). These are
+          classified into actions — finger touch, beat, wave, or idle — and matched against
+          the expected tāḷa cycle.
+        </p>
+        <p>
+          For swaras, detected frequencies are mapped to the nearest Carnatic swara given
+          your base shruti, with raga-aware naming that handles the 16-to-12 swara mapping
+          (overlapping pairs like Ri2/Ga1). Scoring uses cents deviation with ±33-cent
+          tolerance for fast passages, plus weighted partial credit for near-misses.
+        </p>
+
+        <div class="divider">
+          <span class="divider-symbol"><i data-lucide="diamond"></i></span>
+        </div>
+
+        <h2>What's Available Today</h2>
+        <p>
+          Swarāvalamba is not tied to one tāḷa: the aim is to support any tāḷa, together with
+          swaras sung in any shruti. These are the pieces that exist right now:
+        </p>
+        <p>
+          <strong>Exercises</strong> — Sarali 1, Sarali 2, Sarali 3 and Dātu Swara.<br>
+          <strong>Tāḷa</strong> — Ādi tāḷam (8 aksharas per cycle) is currently the only tāḷa.<br>
+          <strong>Shruti</strong> — Sa can be set anywhere from C to B.
+        </p>
+
+        <h2>Three Tala Modes</h2>
+        <p>
+          <strong>Air mode</strong> — the hand moves freely in the air; finger-to-thumb
+          proximity is used for counting. This is the most reliable mode currently.
+        </p>
+        <p>
+          <strong>Palm mode</strong> — the hand counts on the other palm; tip-drop values
+          detect which finger lifts. Requires the system to track the correct hand.
+        </p>
+        <p>
+          <strong>Lap mode</strong> — the hand counts on the lap; similar tip-drop detection
+          but with different baseline calibration.
+        </p>
+
+        <div class="divider">
+          <span class="divider-symbol"><i data-lucide="diamond"></i></span>
+        </div>
+
+        <h2>Swara Mapping</h2>
+        <p>
+          Carnatic music uses 16 swara names mapped to 12 semitones. Four overlapping
+          pairs share a semitone — which name to use depends on the raga. The system supports
+          raga-aware naming for 7 melakartas including Māyāmāḷavagowḷa, Shankarābharaṇam,
+          Kharaharapriya, Hanumatōḍi, Kalyāṇi, Harikāmbhōji, and Naṭabhairavi.
+        </p>
+
+        <h2>Speed Levels</h2>
+        <p>
+          <strong>1st speed</strong> — 1 swara per beat. The fundamental tempo.<br>
+          <strong>2nd speed</strong> — 2 swaras per beat. Requires faster articulation.<br>
+          <strong>3rd speed</strong> — 4 swaras per beat. Advanced, with half-beat split
+          scoring to compensate for ~500ms singer latency.
+        </p>
+
+        <div class="divider">
+          <span class="divider-symbol"><i data-lucide="diamond"></i></span>
+        </div>
+
+        <h2>Origin</h2>
+        <p>
+          Swarāvalamba was presented at <strong>Swara Tank</strong> during the
+          <strong>Chowdiah Sangeetha Mela 2026</strong> in Bengaluru — a pitch competition
+          for music-tech ideas. The name comes from Sanskrit: <em>svara</em> (musical note) +
+          <em>avalamba</em> (support/companion), meaning "support through swaras" — a
+          practice companion that helps you become self-reliant in your music.
+        </p>
+
+        <div style="margin-top: 2rem; text-align: center;">
+          <a href="practice.html" class="btn btn-primary">
+            <i data-lucide="play"></i> Try It Now
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <span class="footer-brand">Swarāvalamba</span> · स्वरावलम्ब
+      <br>
+      <span style="font-size: 0.75rem;">
+        A Carnatic music practice companion ·
+        Presented at <strong>Swara Tank</strong>, Chowdiah Sangeetha Mela 2026
+      </span>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script>lucide.createIcons();</script>
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('swaravalamba-theme', next);
+    }
+    (function() {
+      const saved = localStorage.getItem('swaravalamba-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>

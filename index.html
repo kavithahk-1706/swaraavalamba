@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swarāvalamba | स्वरावलम्ब</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Landing-specific styles */
+    .demo-preview {
+      max-width: 800px;
+      margin: 2rem auto;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 2px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
+      background: var(--bg-card);
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">
+        <span class="nav-brand-name">Swarāvalamba</span>
+        <span class="nav-brand-devanagari">स्वरावलम्ब</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="practice.html">Practice</a></li>
+        <li><a href="history.html">History</a></li>
+        <li id="authSlot" class="auth-slot"></li>
+        <li>
+          <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <span class="icon-sun"><i data-lucide="sun"></i> दिवा</span>
+            <span class="icon-moon"><i data-lucide="moon"></i> रात्रिः</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero container">
+      <div class="hero-overline">स्वरावलम्बम्</div>
+      <h1>Your Carnatic Music Practice Companion</h1>
+      <p class="hero-subtitle">
+        Real-time tālam tracking and swara detection — learn to keep rhythm
+        with your hands while singing in shruti, all in your browser.
+      </p>
+      <div class="hero-actions">
+        <a href="practice.html" class="btn btn-primary">
+          <i data-lucide="play"></i> Start Practicing
+        </a>
+        <a href="about.html" class="btn btn-outline">
+          Learn More
+        </a>
+      </div>
+    </section>
+
+    <!-- Available today -->
+    <div class="container">
+      <div class="divider">
+        <span class="divider-symbol"><i data-lucide="diamond"></i></span>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <span class="badge">Available today</span>
+        <h2 style="margin-top: 0.5rem; font-size: 1.3rem;">What you can practise right now</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.3rem;">
+          Swarāvalamba is built for any tāḷa and any shruti. This is what is currently included.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="book-open"></i></div>
+          <h3>Exercises</h3>
+          <p>Sarali 1, Sarali 2, Sarali 3 and Dātu Swara, each in 1st, 2nd and 3rd speed.</p>
+        </div>
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="hand"></i></div>
+          <h3>Tāḷa</h3>
+          <p>Ādi tāḷam is the tāḷa available at the moment, tracked in air, palm and lap modes.</p>
+        </div>
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="sliders-horizontal"></i></div>
+          <h3>Rāga &amp; shruti</h3>
+          <p>Māyāmāḷavagowḷa, Shankarābharaṇam, Kalyāṇi and Harikāmbhōji, with Sa from C to B.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <section class="section container">
+      <div class="divider">
+        <span class="divider-symbol"><i data-lucide="diamond"></i></span>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="font-size: 1.5rem;">What Swarāvalamba Does</h2>
+      </div>
+
+      <div class="features-grid">
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="hand"></i></div>
+          <h3>Hand Gesture Tracking</h3>
+          <p>
+            Uses your webcam with MediaPipe to detect tālam kriyā in real time —
+            finger counts, beats, and palm flips across air, palm, and lap modes.
+          </p>
+        </div>
+
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="music"></i></div>
+          <h3>Swara Detection</h3>
+          <p>
+            Listens to your singing through the mic and maps your pitch to the
+            nearest Carnatic swara, with cents deviation for microtonal feedback.
+          </p>
+        </div>
+
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="chart-column"></i></div>
+          <h3>Combined Scoring</h3>
+          <p>
+            Scores both your tālam accuracy and swara precision per beat, with
+            weighted partial credit — ±1 semitone tolerance for fast passages.
+          </p>
+        </div>
+
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="library"></i></div>
+          <h3>Exercise Library</h3>
+          <p>
+            Sarali and dātu swara exercises with 1st, 2nd, and 3rd speed support,
+            in the rāga of your choice.
+          </p>
+        </div>
+
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="sliders-horizontal"></i></div>
+          <h3>Shruti & Tanpura</h3>
+          <p>
+            Set your base shruti (Sa) from C to B, with a built-in tanpura
+            drone that pitch-shifts to match — practice anywhere, anytime.
+          </p>
+        </div>
+
+        <div class="card feature-card">
+          <div class="feature-icon"><i data-lucide="list-checks"></i></div>
+          <h3>Detailed Results</h3>
+          <p>
+            After each practice run, see per-swara accuracy with color-coded
+            results, tala cycle breakdowns, and an overall grade.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section container" style="text-align: center; padding-bottom: 4rem;">
+      <div class="divider">
+        <span class="divider-symbol"><i data-lucide="diamond"></i></span>
+      </div>
+      <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem;">Ready to Practice?</h2>
+      <p style="color: var(--text-secondary); max-width: 480px; margin: 0 auto 1.5rem;">
+        All you need is a webcam, a microphone, and your voice.
+        No downloads, no installs — it all runs in your browser.
+      </p>
+      <a href="practice.html" class="btn btn-primary" style="font-size: 1rem; padding: 0.8rem 2rem;">
+        <i data-lucide="play"></i> Open Practice Studio
+      </a>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <span class="footer-brand">Swarāvalamba</span> · स्वरावलम्ब
+      <br>
+      <span style="font-size: 0.75rem;">
+        A Carnatic music practice companion ·
+        Presented at <strong>Swara Tank</strong>, Chowdiah Sangeetha Mela 2026
+      </span>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script>lucide.createIcons();</script>
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('swaravalamba-theme', next);
+    }
+
+    // Load saved theme
+    (function() {
+      const saved = localStorage.getItem('swaravalamba-theme');
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>
