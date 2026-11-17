@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session | Swarāvalamba | स्वरावलम्ब</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .session-wrap { max-width: 1500px; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
+    .session-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .session-head h1 { font-size: 1.6rem; display: flex; align-items: center; gap: 0.5rem; }
+    .session-meta { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .back-link { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; margin-bottom: 0.6rem; }
+    .session-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+    /* results across the full width on top, the replay (video | live panels) below */
+    .session-wrap { max-width: 1680px; }
+    .session-head h1.results-grade { font-size: 1.9rem; }
+    .session-body { display: flex; flex-direction: column; gap: 0.5rem; }
+    .session-body .results-scores { max-width: none; margin: 0.5rem 0 0; }
+    .session-body .results-section-title:first-of-type { margin-top: 1.25rem; }
+    .session-replay { margin-top: 0.5rem; }
+    .session-status { text-align: center; color: var(--text-secondary); padding: 3rem 1rem; }
+
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">
+        <span class="nav-brand-name">Swarāvalamba</span>
+        <span class="nav-brand-devanagari">स्वरावलम्ब</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="practice.html">Practice</a></li>
+        <li><a href="history.html" class="active">History</a></li>
+        <li id="authSlot" class="auth-slot"></li>
+        <li>
+          <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <span class="icon-sun"><i data-lucide="sun"></i> दिवा</span>
+            <span class="icon-moon"><i data-lucide="moon"></i> रात्रिः</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="session-wrap">
+    <a class="back-link" href="history.html"><i data-lucide="chevron-left"></i> All sessions</a>
+
+    <div id="sessionHead" class="session-head hidden">
+      <div>
+        <h1 id="sessionTitle" class="results-grade">Session</h1>
+        <div id="sessionMeta" class="session-meta"></div>
+      </div>
+      <div id="sessionActions" class="session-actions"></div>
+    </div>
+
+    <div id="sessionStatus" class="session-status">Loading…</div>
+
+    <div id="sessionBody" class="session-body hidden">
+      <div id="resultsHost"></div>
+      <section class="session-replay">
+        <h3 class="results-section-title">Replay</h3>
+        <div id="replayHost"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      try { localStorage.setItem('swaravalamba-theme', next); } catch (e) {}
+    }
+    (function () {
+      let saved = null;
+      try { saved = localStorage.getItem('swaravalamba-theme'); } catch (e) {}
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script>lucide.createIcons();</script>
+  <script type="module">
+    import { onAuthChange, isConfigured } from './js/auth.js';
+    import { getSessionRow, getSessionData, getVideoUrl, deleteSession } from './js/history.js';
+    import { Replay } from './js/replay.js';
+    import { buildResults, summarize } from './js/results-view.js';
+    import { exportJSON, exportCSV, exportPDF, baseName } from './js/export.js';
+    import { RAGAS } from './js/swara-detect.js';
+
+    const $ = id => document.getElementById(id);
+    const SPEED = { 1: '1st speed', 2: '2nd speed', 4: '3rd speed' };
+    const id = new URLSearchParams(location.search).get('id');
+    let loadedFor = null;     // user id we've loaded for
+    let replay = null;
+
+    const status = text => { $('sessionStatus').textContent = text; $('sessionStatus').classList.remove('hidden'); };
+    const refreshIcons = () => window.lucide && window.lucide.createIcons();
+
+    function actionButton(icon, label, onClick, cls = '') {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `icon-btn ${cls}`.trim();
+      b.innerHTML = `<i data-lucide="${icon}"></i> ${label}`;
+      b.addEventListener('click', onClick);
+      return b;
+    }
+
+    async function load(user) {
+      if (!id) { status('No session selected. Open one from the History page.'); return; }
+      if (!isConfigured) { status('Cloud history is not set up yet (see SETUP.md).'); return; }
+      if (!user) { status('Sign in with Google to view this session.'); return; }
+      if (loadedFor === user.id) return;
+      loadedFor = user.id;
+      status('Loading…');
+      try {
+        // fetched on demand: summary row, the heavy timeline JSON, and a short-lived video link
+        const row = await getSessionRow(id);
+        const [data, videoUrl] = await Promise.all([
+          getSessionData(id),
+          row.video_path ? getVideoUrl(row.video_path) : Promise.resolve(null),
+        ]);
+        const session = data.timeline;
+
+        const raga = (RAGAS[row.raga] && RAGAS[row.raga].name) || row.raga;
+        // the grade is the page's main heading; the exercise name leads the line under it
+        const sum = summarize(session);
+        $('sessionTitle').textContent = `${sum.grade} · ${sum.overall}%`;
+        $('sessionTitle').className = `results-grade ${sum.cls}`;
+        $('sessionMeta').textContent = `${row.exercise} · ${new Date(row.started_at).toLocaleString()} · ${raga} · ${SPEED[row.speed] || row.speed} · ${row.mode} mode · Sa ${row.shruti} · ${row.bpm} BPM`;
+        document.title = `${row.exercise} | Swarāvalamba`;
+
+        const actions = $('sessionActions');
+        actions.replaceChildren(
+          actionButton('download', 'JSON', () => exportJSON(session, data.hands)),
+          actionButton('file-spreadsheet', 'CSV', () => exportCSV(session)),
+          actionButton('file-text', 'PDF', () => exportPDF(session).catch(e => alert(`Could not create the PDF: ${e.message}`))),
+        );
+        if (row.video_path) {
+          actions.appendChild(actionButton('video', 'Download video', async ev => {
+            const btn = ev.currentTarget;
+            btn.disabled = true;
+            try {
+              const ext = (row.video_mime || '').includes('mp4') ? 'mp4' : 'webm';
+              window.location.assign(await getVideoUrl(row.video_path, { download: `${baseName(session)}.${ext}` }));
+            } catch (e) { alert(`Could not download the video: ${e.message}`); }
+            btn.disabled = false;
+          }));
+        }
+        actions.appendChild(actionButton('trash-2', 'Delete', async () => {
+          if (!confirm('Delete this session' + (row.video_path ? ' and its video' : '') + '? This cannot be undone.')) return;
+          try { await deleteSession(row); location.href = 'history.html'; }
+          catch (e) { alert(`Could not delete: ${e.message || e}`); }
+        }, 'danger'));
+
+        if (replay) replay.destroy();
+        const holder = document.createElement('div');
+        $('replayHost').replaceChildren(holder);
+        replay = new Replay(holder, { session, hands: data.hands, videoUrl });
+        // clicking a box in the results jumps the replay to that moment
+        $('resultsHost').replaceChildren(buildResults(session, { showGrade: false, onSeek: ms => replay.seekToRunTime(ms) }));
+
+        $('sessionStatus').classList.add('hidden');
+        $('sessionHead').classList.remove('hidden');
+        $('sessionBody').classList.remove('hidden');
+        refreshIcons();
+      } catch (e) {
+        console.error(e);
+        loadedFor = null;
+        status(`Could not open this session: ${e.message || e}`);
+      }
+    }
+
+    onAuthChange(u => load(u));
+  </script>
+</body>
+</html>

@@ -49,6 +49,14 @@ export async function listSessions({ limit = 20, before = null } = {}) {
 }
 
 // ── fetch on demand ────────────────────────────────────────
+/** One session's summary row (for the session page). */
+export async function getSessionRow(id) {
+  const c = await client();
+  const { data, error } = await c.from('sessions').select(LIST_COLS).eq('id', id).single();
+  if (error) throw error;
+  return data;
+}
+
 /** Heavy JSON for one session: { timeline (the session object), hands }. */
 export async function getSessionData(id) {
   const c = await client();

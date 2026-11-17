@@ -956,15 +956,18 @@ h1, h2, h3, h4 {
 
 /* ── Session replay (history page) ───────────────────── */
 .replay {
+  --stage-h: min(50vh, 460px);          /* the video's height cap; its width follows the aspect ratio */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, calc(var(--stage-h) * var(--ar, 1.7778))) minmax(0, 1fr);
+  gap: 1.25rem;
   align-items: start;
 }
 .replay-main { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
 .replay-main .notation-bar { margin-bottom: 0; position: relative; }
 .replay-side { display: flex; flex-direction: column; gap: 1rem; }
 .replay-stage {
+  width: min(100%, calc(var(--stage-h, 460px) * var(--ar, 1.7778)));
+  margin: 0 auto;
   position: relative;
   background: #000;
   border-radius: var(--radius-md);
@@ -1030,7 +1033,12 @@ h1, h2, h3, h4 {
 .replay-legend span { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 2px; margin: 0 0.2rem 0 0.5rem; }
 .replay-legend .swara-dot { background: var(--error); }
 .replay-legend .tala-dot { background: var(--info); }
-@media (max-width: 900px) { .replay { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) {            /* video on top, tāḷa and swara panels side by side below it */
+  .replay { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .replay-main { grid-column: 1 / -1; grid-row: 1; width: min(100%, calc(var(--stage-h) * var(--ar, 1.7778))); margin: 0 auto; }
+}
+@media (max-width: 700px) { .replay { grid-template-columns: minmax(0, 1fr); } }
+.replay-side .meter-row { margin-top: 1rem; }
 
 /* ── Shared practice / replay panels ──────────────────── */
 .tala-meta { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.4rem; }
@@ -1065,6 +1073,75 @@ h1, h2, h3, h4 {
 .tala-box.has-conf::before { opacity: 0.25; }
 .tala-box.has-conf::after { opacity: 0.85; transform-origin: left; transform: scaleX(var(--conf, 0)); }
 
-.swara-detail-box.low-conf,
-.tala-boxes .tala-box.low-conf { opacity: 0.55; outline: 1px dashed var(--text-muted); outline-offset: -2px; }
+/* signal strength: lighter = weaker (full strength is the default) */
+.sig-mid { opacity: 0.78; }
+.sig-weak { opacity: 0.5; }
+.swara-detail-box { position: relative; }
+.swara-detail-box.seekable, .tala-box.seekable { cursor: pointer; }
+.swara-detail-box.seekable:hover, .tala-box.seekable:hover { filter: brightness(1.15); outline: 2px solid var(--accent-primary); outline-offset: 1px; }
 .replay-marker.unsure { opacity: 0.4; }
+
+/* ── Results view (practice results + history) ────────── */
+.results-section-title { font-size: 1rem; margin: 1.75rem 0 0.25rem; color: var(--accent-primary); }
+.legend { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-muted); }
+.legend span::before { content: ''; display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; margin-right: 0.3rem; vertical-align: -1px; background: var(--c, var(--text-muted)); opacity: var(--o, 1); }
+.results-note { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.5rem; max-width: 60rem; }
+.tala-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 0.5rem; align-items: center; margin-top: 4px; }
+.tala-row .cyc { font-size: 0.7rem; color: var(--text-muted); }
+.swara-detail-box small { font-size: 0.5rem; font-weight: 500; opacity: 0.9; }
+.history-detail .results-view { margin-top: 1.5rem; }
+.history-detail .results-header { margin-bottom: 1rem; }
+.history-detail .results-scores { max-width: 520px; }
+
+/* ── Scrollbars (match the theme everywhere) ──────────── */
+:root { scrollbar-width: thin; scrollbar-color: var(--border-color) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--accent-secondary); background-clip: content-box; }
+*::-webkit-scrollbar-corner { background: transparent; }
+
+/* ── Small icon buttons (history, session page) ───────── */
+.icon-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+.icon-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.icon-btn:disabled { opacity: 0.55; cursor: wait; }
+.icon-btn.danger:hover { border-color: var(--error); color: var(--error); }
+
+/* results view: compact tāḷa boxes and a tight legend */
+.results-view .tala-box { aspect-ratio: auto; height: 2rem; flex-direction: row; gap: 0.35rem; }
+.results-view .legend { gap: 0.4rem 1rem; }
+
+/* ── Results view: bigger boxes that wrap to any width ── */
+.results-view .swara-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.9rem, 1fr));
+  gap: 6px;
+}
+.results-view .swara-detail-box {
+  width: auto;
+  height: 3.3rem;
+  font-size: 1rem;
+  border-radius: 6px;
+}
+.results-view .swara-detail-box small { font-size: 0.74rem; }
+.results-view .tala-box { height: 2.6rem; font-size: 0.85rem; }
+.results-view .legend { font-size: 0.88rem; gap: 0.5rem 1.4rem; }
+.results-view .legend span::before { width: 0.95rem; height: 0.95rem; margin-right: 0.4rem; vertical-align: -2px; }
+.results-view .results-note { font-size: 0.82rem; }
+.results-view .tala-row .cyc { font-size: 0.8rem; }
+
+/* keep the replay row inside the page width */
+.session-body > *, .session-replay, .replay { min-width: 0; max-width: 100%; }

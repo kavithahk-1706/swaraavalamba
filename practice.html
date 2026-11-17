@@ -97,12 +97,6 @@
     .countdown-sub { margin-top: 0.3rem; color: #bfb09a; font-size: 0.85rem; }
 
     .results-inner { max-width: 900px; margin: 0 auto; }
-    .results-section-title { font-size: 1rem; margin: 1.75rem 0 0.25rem; color: var(--accent-primary); }
-    .legend { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-muted); }
-    .legend span::before { content: ''; display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; margin-right: 0.3rem; vertical-align: -1px; background: var(--c, var(--text-muted)); }
-    .tala-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 0.5rem; align-items: center; margin-top: 4px; }
-    .tala-row .cyc { font-size: 0.7rem; color: var(--text-muted); }
-    .swara-detail-box small { font-size: 0.5rem; font-weight: 500; opacity: 0.85; }
     .results-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem; }
 
     @media (max-width: 900px) {
@@ -309,44 +303,7 @@
   <!-- ═════════ Results overlay ═════════ -->
   <div id="resultsOverlay" class="results-overlay hidden">
     <div class="results-inner">
-      <div class="results-header">
-        <h2 id="resultsTitle">Results</h2>
-        <div id="resultsGrade" class="results-grade"></div>
-      </div>
-
-      <div class="results-scores">
-        <div class="card score-card">
-          <div class="score-label">Swara</div>
-          <div id="swaraScoreValue" class="score-value">0%</div>
-          <div class="score-bar"><div id="swaraScoreBar" class="score-bar-fill" style="width: 0%"></div></div>
-        </div>
-        <div class="card score-card">
-          <div class="score-label">Tala</div>
-          <div id="talaScoreValue" class="score-value">0%</div>
-          <div class="score-bar"><div id="talaScoreBar" class="score-bar-fill" style="width: 0%"></div></div>
-        </div>
-      </div>
-
-      <h3 class="results-section-title">Swara detail</h3>
-      <div id="swaraDetailGrid" class="swara-detail-grid"></div>
-      <div class="legend">
-        <span style="--c: var(--success)">in tune</span>
-        <span style="--c: #4aa890">slightly off</span>
-        <span style="--c: var(--warning)">1 semitone</span>
-        <span style="--c: #d07020">2 semitones</span>
-        <span style="--c: var(--error)">wrong</span>
-        <span style="--c: var(--text-muted)">not detected</span>
-        <span style="--c: var(--text-muted); opacity: .5">faded = low signal strength</span>
-      </div>
-
-      <h3 class="results-section-title">Tala detail</h3>
-      <div id="talaDetail" class="tala-detail">
-        <div id="talaDetailRows"></div>
-      </div>
-      <div class="legend">
-        <span style="--c: var(--success)">correct</span>
-        <span style="--c: var(--error)">missed</span>
-      </div>
+      <div id="resultsBody"></div>
 
       <div class="results-actions">
         <button id="retryBtn" class="btn btn-outline" type="button"><i data-lucide="rotate-ccw"></i> Retry</button>

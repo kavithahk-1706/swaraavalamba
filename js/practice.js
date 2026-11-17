@@ -12,6 +12,7 @@ import { getUser, onAuthChange } from './auth.js';
 import { saveSession } from './history.js';
 import { SessionRecorder, recordingSupported, guessHeadphones } from './recorder.js';
 import { exportJSON, exportCSV, exportPDF } from './export.js';
+import { buildResults, summarize } from './results-view.js';
 import {
   displaySwara, NOT_DETECTED, _swaraWeight, resultClass, notationClass, pctOf, meterColor, isLowConf,
 } from './scoring.js';
@@ -715,79 +716,15 @@ function showResults() {
   setState(RESULTS);
   setNotationCurrent(-1);
 
-  const sN = app.swaraResults.length;
-  const sPct = pctOf(app.swaraResults.reduce((a, r) => a + _swaraWeight(r), 0), sN);
-  const tN = app.talaResults.length;
-  const tCorrect = app.talaResults.filter(r => r.correct).length;
-  const tPct = pctOf(tCorrect, tN);
-  const overall = Math.floor((sPct + tPct) / 2);
+  const session = app.session;
+  const sum = summarize(session);
+  session.endedAt = new Date().toISOString();
+  session.summary = {
+    swaraPct: sum.sPct, talaPct: sum.tPct, overall: sum.overall, talaCorrect: sum.tCorrect, talaTotal: sum.tN,
+  };
 
-  let grade, cls;
-  if (overall >= 80) { grade = 'Excellent!'; cls = 'excellent'; }
-  else if (overall >= 60) { grade = 'Good'; cls = 'good'; }
-  else if (overall >= 40) { grade = 'Keep practicing'; cls = 'ok'; }
-  else { grade = 'Needs work'; cls = 'poor'; }
-
-  $('resultsTitle').textContent = `Results — ${app.exerciseKey}`;
-  const g = $('resultsGrade');
-  g.textContent = `${grade} · ${overall}%`;
-  g.className = `results-grade ${cls}`;
-
-  $('swaraScoreValue').textContent = `${sPct}%`;
-  $('swaraScoreValue').style.color = meterColor(sPct);
-  $('swaraScoreBar').style.width = `${sPct}%`;
-  $('swaraScoreBar').style.background = meterColor(sPct);
-  $('talaScoreValue').textContent = `${tCorrect}/${tN} (${tPct}%)`;
-  $('talaScoreValue').style.color = meterColor(tPct);
-  $('talaScoreBar').style.width = `${tPct}%`;
-  $('talaScoreBar').style.background = meterColor(tPct);
-
-  // swara detail grid
-  const grid = $('swaraDetailGrid');
-  grid.replaceChildren();
-  for (const r of app.swaraResults) {
-    const box = document.createElement('div');
-    box.className = `swara-detail-box ${resultClass(r)}${r.conf !== undefined && !NOT_DETECTED.includes(r.detected) && isLowConf(r.conf) ? ' low-conf' : ''}`;
-    const detected = NOT_DETECTED.includes(r.detected) ? 'not detected' : `${r.detected} ${r.cents >= 0 ? '+' : ''}${r.cents.toFixed(0)}¢`;
-    box.title = `#${r.index + 1}: expected ${displaySwara(r.expected)}, ${detected}` + (NOT_DETECTED.includes(r.detected) ? '' : ` · signal ${r.conf}%`);
-    box.append(displaySwara(r.expected));
-    if (!NOT_DETECTED.includes(r.detected)) {
-      const small = document.createElement('small');
-      small.textContent = `${r.cents >= 0 ? '+' : ''}${r.cents.toFixed(0)}¢`;
-      box.appendChild(small);
-    }
-    grid.appendChild(box);
-  }
-
-  // tala detail: one row of 8 boxes per cycle
-  const rows = $('talaDetailRows');
-  rows.replaceChildren();
-  for (let c = 0; c < app.totalBeats / 8; c++) {
-    const row = document.createElement('div');
-    row.className = 'tala-row';
-    const label = document.createElement('span');
-    label.className = 'cyc';
-    label.textContent = `C${c + 1}`;
-    const boxes = document.createElement('div');
-    boxes.className = 'tala-boxes';
-    for (let a = 0; a < 8; a++) {
-      const box = document.createElement('div');
-      box.className = 'tala-box';
-      const tr = app.talaResults[c * 8 + a];
-      if (tr) box.classList.add(tr.correct ? 'correct' : 'wrong');
-      if (tr && isLowConf(tr.conf)) box.classList.add('low-conf');
-      box.textContent = CYCLE[a].name.slice(0, 3);
-      if (tr) box.title = `${tr.detail} · signal ${tr.conf}% · hand ${tr.handConf}%`;
-      boxes.appendChild(box);
-    }
-    row.append(label, boxes);
-    rows.appendChild(row);
-  }
-
-  if (app.session) {
-    app.session.endedAt = new Date().toISOString();
-    app.session.summary = { swaraPct: sPct, talaPct: tPct, overall, talaCorrect: tCorrect, talaTotal: tN };
-  }
+  // the same view the History page builds from the saved events
+  $('resultsBody').replaceChildren(buildResults(session, { title: `Results — ${app.exerciseKey}` }));
   $('resultsOverlay').classList.remove('hidden');
   $('resultsOverlay').scrollTop = 0;
 
@@ -917,10 +854,15 @@ function onStartClick() {
 
 // ── Main loop ──────────────────────────────────────────────
 function frame(now) {
-  const newFrame = detectHands(now);
-  if (app.state === COUNTDOWN) tickCountdown(now);
-  else if (app.state === RUNNING) tickRunning(now, newFrame);
-  else if (app.state === MENU && app.listener) renderDetected(app.listener.getState(), null);
+  // never let one error kill the loop (a throw here used to freeze the whole page)
+  try {
+    const newFrame = detectHands(now);
+    if (app.state === COUNTDOWN) tickCountdown(now);
+    else if (app.state === RUNNING) tickRunning(now, newFrame);
+    else if (app.state === MENU && app.listener) renderDetected(app.listener.getState(), null);
+  } catch (e) {
+    console.error('Frame error:', e);
+  }
   requestAnimationFrame(frame);
 }
 

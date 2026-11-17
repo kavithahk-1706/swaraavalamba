@@ -140,7 +140,7 @@ export class Replay {
       this.stage.appendChild(this.stageMsg);
       this.video.addEventListener('loadedmetadata', () => {
         const w = this.video.videoWidth, hgt = this.video.videoHeight;
-        if (w && hgt) { this.canvas.width = w; this.canvas.height = hgt; this.stage.style.aspectRatio = `${w} / ${hgt}`; }
+        if (w && hgt) { this.canvas.width = w; this.canvas.height = hgt; this.stage.style.aspectRatio = `${w} / ${hgt}`; this.root.style.setProperty('--ar', (w / hgt).toFixed(4)); }
         this.stageMsg.classList.add('hidden');
         this._lastT = -1;
       });
@@ -232,10 +232,11 @@ export class Replay {
     // notation bar
     this.bar = h('div', 'notation-bar');
     this.notes.forEach((n, i) => { const sp = h('span', 'swara', displaySwara(n)); sp.dataset.i = i; this.bar.appendChild(sp); });
-    main.appendChild(this.bar);
+    main.prepend(this.bar);          // notation sits above the video
 
-    // right column: tāḷa, swara, accuracy
-    const side = h('div', 'replay-side');
+    // side columns: tāḷa (left) and swara (right), each with its own accuracy bar; the video stays centred
+    const sideL = h('div', 'replay-side');
+    const sideR = h('div', 'replay-side');
 
     const talaPanel = h('div', 'meter-panel');
     talaPanel.appendChild(h('h3', null, 'Tāḷa cycle'));
@@ -281,9 +282,7 @@ export class Replay {
     disp.appendChild(st);
     swaraPanel.appendChild(disp);
 
-    const meterPanel = h('div', 'meter-panel');
-    meterPanel.appendChild(h('h3', null, 'Accuracy so far'));
-    const row = label => {
+    const row = (label, parent) => {
       const r = h('div', 'meter-row');
       const head = h('div', 'meter-row-head');
       head.appendChild(h('span', null, label));
@@ -294,14 +293,15 @@ export class Replay {
       fill.style.width = '0%';
       bar.appendChild(fill);
       r.append(head, bar);
-      meterPanel.appendChild(r);
+      parent.appendChild(r);
       return { val, fill };
     };
-    this.talaMeter = row('Tala');
-    this.swaraMeter = row('Swara');
+    this.talaMeter = row('Tala accuracy so far', talaPanel);
+    this.swaraMeter = row('Swara accuracy so far', swaraPanel);
 
-    side.append(talaPanel, swaraPanel, meterPanel);
-    root.append(main, side);
+    sideL.appendChild(talaPanel);
+    sideR.appendChild(swaraPanel);
+    root.append(sideL, main, sideR);
 
     if (window.lucide) window.lucide.createIcons();
   }
@@ -310,6 +310,12 @@ export class Replay {
   _seekTo(mediaMs) {
     this.clock.seek(Math.max(0, mediaMs));
     this._lastT = -1;
+  }
+
+  /** Jump to a moment given in ms from the first beat (used by the results grid). */
+  seekToRunTime(runMs) {
+    this._seekTo(this.offset + runMs - LEAD_IN_MS);
+    this.root.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   _jumpMistake(dir) {

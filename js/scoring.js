@@ -55,3 +55,11 @@ export const meterColor = pct => (pct >= 70 ? 'var(--success)' : pct >= 50 ? 'va
 /** Signal strength (0–100) below this is shown as "low confidence" (faded). */
 export const LOW_CONF = 40;
 export const isLowConf = c => typeof c === 'number' && c < LOW_CONF;
+
+/** Signal-strength tier for display: null = strong (or unknown), 'mid' = lighter, 'weak' = lightest. */
+export function signalTier(c) {
+  if (typeof c !== 'number') return null;
+  if (c < LOW_CONF) return 'weak';
+  if (c < 70) return 'mid';
+  return null;
+}

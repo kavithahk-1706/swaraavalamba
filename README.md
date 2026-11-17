@@ -61,7 +61,8 @@ directory is the project root. Add the deployed URL to Supabase's redirect URLs.
 ```
 index.html, about.html     landing and about pages
 practice.html              the practice page (camera, tāḷa, swara, settings)
-history.html               saved sessions and replay
+history.html               list of saved sessions
+session.html               one session: video replay beside its results
 css/style.css              palm-leaf theme and shared components
 assets/                    tanpura_c_loop.mp3 (the hand model is downloaded, see below)
 supabase/schema.sql        database + storage schema and security policies
@@ -72,6 +73,7 @@ js/
   scoring.js               scoring helpers shared by practice and replay
   recorder.js              MediaRecorder video capture, headphone helper
   replay.js                replay view driven by the saved timeline
+  results-view.js          score cards + swara/tāḷa detail (practice results and session page)
   history.js               cloud save / list / load (Supabase)
   auth.js, supabase.js     Google sign-in and the Supabase client
   export.js                JSON / CSV / PDF export
