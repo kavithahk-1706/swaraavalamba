@@ -962,7 +962,7 @@ function init() {
       app.drone.start().then(() => { if (!e.target.checked) app.drone.stop(); }).catch(err => {
         console.error(err);
         e.target.checked = false;
-        alert('Could not load assets/tanpura_c_loop.wav. Make sure the page is served over http.');
+        alert('Could not load assets/tanpura_c_loop.mp3. Make sure the page is served over http.');
       });
     } else if (app.drone) {
       app.drone.stop();

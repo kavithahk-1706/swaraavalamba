@@ -330,14 +330,14 @@ export class SwaraListener {
 // ── Tanpura drone (recorded loop) ──────────────────────────
 
 /**
- * Plays assets/tanpura_c_loop.wav on a loop. The recording is in C; other
+ * Plays assets/tanpura_c_loop.mp3 on a loop. The recording is in C; other
  * shrutis are reached by changing playbackRate (resampling, like the Python
  * TanpuraPlayer), taking the shortest way round (up to 6 semitones either way).
  */
 export class TanpuraPlayer {
   static BASE_NOTE = 'C';
 
-  constructor(audioCtx, { url = 'assets/tanpura_c_loop.wav', shruti = 'C', volume = 0.5, output = null } = {}) {
+  constructor(audioCtx, { url = 'assets/tanpura_c_loop.mp3', shruti = 'C', volume = 0.5, output = null } = {}) {
     this.ctx = audioCtx;
     this.output = output || audioCtx.destination;   // lets the page route the drone through its own bus
     this.url = url;
